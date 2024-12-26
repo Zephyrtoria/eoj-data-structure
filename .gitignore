@@ -1,0 +1,4 @@
+/homework/*/*.exe
+/test
+/.vscode
+/.idea
