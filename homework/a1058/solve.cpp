@@ -11,20 +11,34 @@ private:
     int** graph;
     int* count;
     vector<int> path;
+    int** duplicatePath;  // 记录重复路径，虽然要丢弃小的边，但是要考虑相同权重的边
 
 public:
     Graph(int n, int m) {
         graph = new int*[n + 1];
+        duplicatePath = new int*[n + 1];
         for (int i = 1; i <= n; i++) {
             graph[i] = new int[n + 1];
+            duplicatePath[i] = new int[n + 1];
             memset(graph[i], 0x3f, sizeof(int) * (n + 1));
+            for (int j = 1; j <= n; j++) {
+                duplicatePath[i][j] = 1;
+            }
         }
+
         for (int i = 0; i < m; i++) {
             int u, v, w;
             cin >> u >> v >> w;
-            graph[u][v] = min(graph[u][v], w);
-            graph[v][u] = min(graph[v][u], w);
+            if (graph[u][v] == w) {
+                duplicatePath[u][v]++;
+                duplicatePath[v][u]++;
+            } else if (graph[u][v] > w) {
+                duplicatePath[u][v] = duplicatePath[v][u] = 1;
+                graph[u][v] = w;
+                graph[v][u] = w;
+            }
         }
+
         this->n = n;
         count = new int[n + 1];
         memset(count, 0, sizeof(int) * (n + 1));
@@ -59,10 +73,11 @@ public:
                 int nextDist = dist[t] + graph[t][j];
                 if (dist[j] > nextDist) {
                     prev[j] = t;
-                    dist[j] = min(dist[j], nextDist);
-                    count[j] = count[t];
-                } else if (dist[j] != INF && dist[j] == nextDist) {
-                    count[j] += count[t];
+                    dist[j] = nextDist;
+                    count[j] = count[t] * duplicatePath[t][j];
+                } else if (dist[j] == nextDist) {  // 有边相连，而且可以到达
+                    // 处理权重相同的边
+                    count[j] += count[t] * duplicatePath[t][j];
                 }
             }
 

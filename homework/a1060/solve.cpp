@@ -1,98 +1,96 @@
-#include <cstring>
+#include <cmath>
 #include <iostream>
-#include <list>
 #include <string>
 #include <unordered_map>
 #include <vector>
-
 using namespace std;
+const int INF = 0x3f3f3f3f;
 
-typedef struct Node {
-    int to;
-    double weight;
-    Node(int to_, double weight_) {
-        to = to_;
-        weight = weight_;
+typedef struct Edge {
+    int source;
+    int dest;
+    double rate;
+    Edge(int source, int dest, double rate) {
+        this->source = source;
+        this->dest = dest;
+        this->rate = rate;
     }
-} Node;
-const int N = 35;
+} Edge;
 
 class Graph {
 private:
     int n;
-    list<Node*> graph[N];
+    vector<Edge*> edges;
     unordered_map<string, int> nameToId;
-    bool flag;
 
 public:
     Graph(int n) {
-        this->n = n;
         for (int i = 0; i < n; i++) {
             string name;
             cin >> name;
             nameToId[name] = i;
         }
+        this->n = n;
     }
 
-    int getIndexByName(string& name) {
+    int getIdByName(string& name) {
         return nameToId[name];
     }
 
-    void insertEdge(string& from, string& to, double weight) {
-        int fromIdx = getIndexByName(from), toIdx = getIndexByName(to);
-        graph[fromIdx].push_back(new Node(toIdx, weight));
+    void insertEdge(string& source, string& dest, double rate) {
+        // 将边权转为-log(rate):乘法->加法
+        rate = -log(rate);
+        edges.push_back(new Edge(getIdByName(source), getIdByName(dest), rate));
     }
 
-    bool findCycle(int start, int cur, int* state, double result, bool pass) {
-        if (state[cur] == 1 && pass) {
-            if (cur == start && result > 1) {
-                flag = true;
-            }
-            return true;
-        } else if (state[cur] == 2) {
-            return false;
-        }
-        state[cur] = 1;
-        for (auto e : graph[cur]) {
-            findCycle(start, e->to, state, result * e->weight, true);
-        }
-        state[cur] = 2;
-        return false;
-    }
-
-    bool arbitragePossible() {
-        // 找回路，判断回路上的系数乘积是否大于1
-        int* state = new int[n];
-        flag = false;
-
-        // 每个点做起点
+    int bellmanFord() {
+        double* dist = new double[n];
         for (int i = 0; i < n; i++) {
-            memset(state, 0, sizeof(int) * n);
-            findCycle(i, i, state, 1, false);
+            dist[i] = INF;
         }
 
-        return flag;
+        // 松弛边n - 1次
+        for (int i = 0; i < n - 1; i++) {
+            for (auto edge : edges) {
+                int source = edge->source, dest = edge->dest;
+                double weight = edge->rate;
+                if (dist[source] + weight < dist[dest]) {
+                    dist[dest] = dist[source] + weight;
+                }
+            }
+        }
+
+        // 尝试第n次松弛边，如果还能松弛就说明有负权环
+        for (auto edge : edges) {
+            int source = edge->source, dest = edge->dest;
+            double weight = edge->rate;
+            if (dist[source] + weight < dist[dest]) {
+                return true;
+            }
+        }
+        return false;
     }
 };
 
 int main(void) {
     int n, m;
-
-    int count = 1;
+    int t = 1;
     while (cin >> n && n != 0) {
         Graph g(n);
         cin >> m;
         for (int i = 0; i < m; i++) {
-            string from, to;
-            double weight;
-            cin >> from >> weight >> to;
-            g.insertEdge(from, to, weight);
+            string source, dest;
+            double rate;
+            cin >> source >> rate >> dest;
+            g.insertEdge(source, dest, rate);
         }
-        if (g.arbitragePossible()) {
-            cout << "Case " << count++ << ": Yes" << endl;
+
+        if (g.bellmanFord()) {
+            cout << "Case " << t << ": Yes" << endl;
         } else {
-            cout << "Case " << count++ << ": No" << endl;
+            cout << "Case " << t << ": No" << endl;
         }
+        t++;
     }
     return 0;
 }
