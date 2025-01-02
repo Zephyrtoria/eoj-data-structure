@@ -50,9 +50,9 @@ public:
     int getComponent() {
         int result = 0;
         for (int i = 1; i <= n; i++) {
-            if (component.count(i) == 0) {
+            if (component.count(parent[find(i)]) == 0) {
                 result++;
-                component[i] = true;
+                component[find(i)] = true;
             }
         }
         return result;
@@ -63,7 +63,7 @@ class Graph {
 private:
     int n;
     DSU* dsu;
-    vector<Edge*> edges;
+    priority_queue<Edge*> edges;
 
 public:
     Graph(int n) {
@@ -73,7 +73,7 @@ public:
 
     void insertEdge(int source, int dest, int weight) {
         dsu->unite(source, dest);
-        edges.push_back(new Edge{source, dest, weight});
+        edges.push(new Edge{source, dest, weight});
     }
 
     bool connected() {
@@ -101,20 +101,20 @@ public:
             int u = edge->source, v = edge->dest;
             if (!uf.same(u, v)) {
                 uf.unite(u, v);
-                
             }
         }
     }
 
-    vector<vector<Edge*>> kruskalWithAlternatives() {
+    int kruskalWithAlternatives() {
         DSU uf(n);
         // 记录候选边
         vector<Edge*> alternatives;
         // 记录最小生成树的边
         vector<Edge*> MST;
         int cost = 0;
-        sort(edges.begin(), edges.end());
-        for (auto edge : edges) {
+        while (!edges.empty()) {
+            auto edge = edges.top();
+            edges.pop();
             int u = edge->source, v = edge->dest, w = edge->weight;
             if (!uf.same(u, v)) {
                 MST.push_back(edge);
@@ -124,10 +124,7 @@ public:
                 alternatives.push_back(edge);
             }
         }
-        // 上面找到了最小生成树，下面尝试互换候选边，生成不同的MST
-        vector<vector<Edge*>> allMST;
-        dfs(allMST, MST, alternatives, uf, 0);
-        return allMST;
+        return cost;
     }
 };
 
@@ -147,7 +144,9 @@ int main(void) {
              << g.getComponent() << endl;
     } else {
         // 连通
-        // 判断有无多个最小生成树
+        // 判断有无多个最小生成树（不会）
+        cout << "YES" << endl
+             << g.kruskalWithAlternatives() << endl;
     }
     return 0;
 }
