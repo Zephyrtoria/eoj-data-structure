@@ -9,11 +9,11 @@ private:
     int n;
     int** graph;
     int** costs;
-    int* prev;
-    int cheap;
+    int* minCost;
 
 public:
     Graph(int n, int m) {
+        this->n = n;
         graph = new int*[n];
         costs = new int*[n];
         for (int i = 0; i < n; i++) {
@@ -25,9 +25,11 @@ public:
             int source, dest, weight, cost;
             cin >> source >> dest >> weight >> cost;
             if (graph[source][dest] > weight) {
-                graph[source][dest] = weight;
-                costs[source][dest] = cost;
+                graph[source][dest] = graph[dest][source] = weight;
+                costs[source][dest] = costs[dest][source] = cost;
             }
+            minCost = new int[n];
+            memset(minCost, 0x3f, sizeof(int) * n);
         }
     }
 
@@ -36,11 +38,9 @@ public:
         memset(dist, 0x3f, sizeof(int) * n);
         bool* visited = new bool[n];
         memset(visited, false, sizeof(bool) * n);
-        prev = new int[n];
-        int result = 0;
 
         dist[s] = 0;
-        prev[s] = -1;
+        minCost[s] = 0;
         for (int i = 0; i < n; i++) {
             int t = -1;
             for (int j = 0; j < n; j++) {
@@ -50,24 +50,24 @@ public:
             }
 
             if (t == -1) {
-                return;
+                return -1;
             }
-            result += dist[t];
 
-            for (int j = 0; j < n; j++) {
-                if (dist[j] > dist[t] + graph[t][j]) {
-                    dist[j] = dist[t] + graph[t][j];
-                    prev[j] = t;
-                }
+        for (int j = 0; j < n; j++) {
+            if (dist[j] > dist[t] + graph[t][j]) {
+                dist[j] = dist[t] + graph[t][j];
+                minCost[j] = minCost[t] + costs[t][j];
+            } else if (dist[j] == dist[t] + graph[t][j]) {
+                minCost[j] = min(minCost[j], minCost[t] + costs[t][j]);
             }
+        }
             visited[t] = true;
         }
         return dist[d];
     }
 
-
-    int findCheapestPath(int s, int d) {
-        
+    int getMinCost(int d) {
+        return minCost[d];
     }
 };
 
@@ -75,6 +75,6 @@ int main(void) {
     int n, m, s, d;
     cin >> n >> m >> s >> d;
     Graph g(n, m);
-    cout << g.dijkstra(s, d) << " " << g.findCheapestPath(s, d) << endl;
+    cout << g.dijkstra(s, d) << " " << g.getMinCost(d) << endl;
     return 0;
 }
