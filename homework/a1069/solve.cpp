@@ -8,14 +8,40 @@ bool cmp(int a, int b) {
     return a > b;
 }
 
+void quickSort(int* arr, int l, int r, int k) {
+    if (l >= r) {
+        return;
+    }
+    int x = arr[l + r >> 1], i = l - 1, j = r + 1;
+    while (i < j) {
+        do {
+            i++;
+        } while (arr[i] > x);
+        do {
+            j--;
+        } while (arr[j] < x);
+        if (i < j) {
+            swap(arr[i], arr[j]);
+        }
+    }
+    int sl = j - l + 1;
+    if (k <= sl) {
+        quickSort(arr, l, j, k);
+    } else {
+        quickSort(arr, j + 1, r, k - sl);
+    }
+}
+
 int main(void) {
     int n, m;
     cin >> n >> m;
+    int* arr = new int[n];
+
+    for (int i = 0; i < n; i++) {
+        cin >> arr[i];
+    }
+
     if (n <= m) {
-        int* arr = new int[n];
-        for (int i = 0; i < n; i++) {
-            cin >> arr[i];
-        }
         sort(arr, arr + n, cmp);
         for (int i = 0; i < n; i++) {
             cout << arr[i] << " ";
@@ -24,31 +50,12 @@ int main(void) {
         return 0;
     }
 
-    priority_queue<int, vector<int>, greater<int>> pq;
+    quickSort(arr, 0, n - 1, m);
+    sort(arr, arr + m, cmp);
     for (int i = 0; i < m; i++) {
-        int a;
-        cin >> a;
-        pq.push(a);
-    }
-
-    for (int i = m; i < n; i++) {
-        int a;
-        cin >> a;
-        if (a > pq.top()) {
-            pq.pop();
-            pq.push(a);
-        }
-    }
-
-    int* result = new int[m];
-    int end = m - 1;
-    while (!pq.empty()) {
-        result[end--] = pq.top();
-        pq.pop();
-    }
-    for (int i = 0; i < m; i++) {
-        cout << result[i] << " ";
+        cout << arr[i] << " ";
     }
     cout << endl;
+
     return 0;
 }
