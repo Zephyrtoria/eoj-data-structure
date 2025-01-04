@@ -1,69 +1,46 @@
 #include <cstring>
 #include <iostream>
-#include <list>
 #include <queue>
 
-const int N = 10010;
+const int INF = 0x3f3f3f3f;
+const int MAXN = 1010;
 
 using namespace std;
+int graph[MAXN][MAXN];
 class Graph {
 private:
     int n;
-    list<int> nodes[N];
 
 public:
     Graph(int n, int m) {
         this->n = n;
+        memset(graph, 0x3f, sizeof(graph));
         for (int i = 0; i < m; i++) {
             int a, b;
             cin >> a >> b;
-            nodes[a].push_back(b);
-            nodes[b].push_back(a);
+            graph[a][b] = graph[b][a] = 1;
         }
-
-        /* for (int i = 1; i <= n; i++) {
-            cout << i << ": ";
-            for (int next : nodes[i]) {
-                cout << next << ' ';
-            }
-            cout << endl;
-        }
-         */
     }
 
-    int bfs(int index) {
-        int result = 0;
-        queue<int> q;
-        bool *visited = new bool[n + 1];
-        memset(visited, 0, sizeof(visited));
-        for (int i = 1; i <= n; i++) {
-            visited[i] = false;
-        }
-        q.push(index);
-
-        int count = 0;
-        while (count < 7 && !q.empty()) {  // 包含自身
-            int size = q.size();
-            while (size--) {
-                int cur = q.front();
-                q.pop();
-                result++;
-                visited[cur] = true;
-                for (int next : nodes[cur]) {
-                    if (!visited[next]) {
-                        q.push(next);
-                    }
+    void floyd() {
+        for (int k = 1; k <= n; k++) {
+            for (int i = 1; i <= n; i++) {
+                for (int j = 1; j <= n; j++) {
+                    graph[i][j] = min(graph[i][j], graph[i][k] + graph[k][j]);
                 }
             }
-            count++;
         }
-        delete visited;
-        return result;
     }
 
-    void getSixthSpace() {
+    void solve() {
         for (int i = 1; i <= n; i++) {
-            printf("%d: %.2f%%\n", i, (double)bfs(i) / n * 100);
+            int sum = 0;
+            for (int j = 1; j <= n; j++) {
+                if (graph[i][j] <= 6) {
+                    sum++;
+                }
+            }
+            printf("%d: %.2f%%\n", i, (double)sum / n * 100);
         }
     }
 };
@@ -71,7 +48,8 @@ public:
 int main(void) {
     int n, m;
     cin >> n >> m;
-    Graph solve(n, m);
-    solve.getSixthSpace();
+    Graph g(n, m);
+    g.floyd();
+    g.solve();
     return 0;
 }
