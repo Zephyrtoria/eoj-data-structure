@@ -38,24 +38,24 @@ int main(void) {
     int* arr = new int[n];
 
     for (int i = 0; i < n; i++) {
-        cin >> arr[i];
+        scanf("%d", &arr[i]);
     }
 
     if (n <= m) {
         sort(arr, arr + n, cmp);
         for (int i = 0; i < n; i++) {
-            cout << arr[i] << " ";
+            printf("%d ", arr[i]);
         }
-        cout << endl;
+        printf("\n");
         return 0;
     }
 
     quickSort(arr, 0, n - 1, m);
     sort(arr, arr + m, cmp);
     for (int i = 0; i < m; i++) {
-        cout << arr[i] << " ";
+        printf("%d ", arr[i]);
     }
-    cout << endl;
+    printf("\n");
 
     return 0;
 }
