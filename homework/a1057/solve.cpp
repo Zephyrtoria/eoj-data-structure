@@ -1,58 +1,57 @@
-#include <algorithm>
 #include <cstring>
 #include <iostream>
 #include <queue>
 #include <unordered_map>
 #include <vector>
 using namespace std;
+#define read(X) scanf("%d", &X)
 
+const int MAXN = 501;
+const int INF = 0x3f3f3f3f;
 typedef struct Edge {
     int source;
     int dest;
     int weight;
-    bool operator<(const Edge& a) const {
-        return weight < a.weight;
+    bool operator<(const Edge& o) const {
+        return weight > o.weight;
     }
 } Edge;
 
 class DSU {
 private:
     int n;
-    vector<int> parent;
-    vector<int> counts;
-    unordered_map<int, bool> component;
+    vector<int> parents;
+    unordered_map<int, int> components;
 
 public:
     DSU(int n) {
-        for (int i = 0; i <= n; i++) {
-            parent.push_back(i);
-            counts.push_back(1);
-        }
         this->n = n;
+        for (int i = 0; i <= n; i++) {
+            parents.push_back(i);
+        }
     }
 
     int find(int x) {
-        if (x != parent[x]) {
-            parent[x] = find(parent[x]);
+        if (x != parents[x]) {
+            parents[x] = find(parents[x]);
         }
-        return parent[x];
+        return parents[x];
     }
 
-    bool same(int a, int b) {
-        return find(a) == find(b);
+    bool same(int x, int y) {
+        return find(x) == find(y);
     }
 
-    void unite(int a, int b) {
-        parent[find(a)] = find(b);
-        counts[find(b)] += counts[find(a)];
+    void unite(int x, int y) {
+        parents[find(x)] = find(y);
     }
 
-    int getComponent() {
+    int getComponents() {
         int result = 0;
         for (int i = 1; i <= n; i++) {
-            if (component.count(parent[find(i)]) == 0) {
+            if (components.count(find(i)) == 0) {
                 result++;
-                component[find(i)] = true;
+                components[find(i)] = 1;
             }
         }
         return result;
@@ -62,91 +61,133 @@ public:
 class Graph {
 private:
     int n;
-    DSU* dsu;
-    priority_queue<Edge*> edges;
+    DSU* graphConnectionUf;
+    int minMst;
+    vector<Edge> edges;
+    vector<Edge> mst;
+    vector<Edge> remainingEdges;
+    vector<int> allMst;
 
 public:
     Graph(int n) {
         this->n = n;
-        dsu = new DSU(n);
+        graphConnectionUf = new DSU(n);
     }
+    ~Graph() { delete graphConnectionUf; }
 
-    void insertEdge(int source, int dest, int weight) {
-        dsu->unite(source, dest);
-        edges.push(new Edge{source, dest, weight});
-    }
-
-    bool connected() {
-        for (int i = 1; i < n; i++) {
-            if (!dsu->same(i, i + 1)) {
-                return false;
-            }
-        }
-        return true;
+    void insertEdge(int u, int v, int w) {
+        Edge e{u, v, w};
+        edges.push_back(e);
+        graphConnectionUf->unite(u, v);
     }
 
     int getComponent() {
-        return dsu->getComponent();
+        return graphConnectionUf->getComponents();
     }
 
-    void dfs(vector<vector<Edge*>>& allMST, vector<Edge*>& currentMST, vector<Edge*> remainingEdges, DSU uf, int u) {
-        if (currentMST.size() == n - 1) {
-            vector<Edge*> temp = currentMST;
-            allMST.push_back(temp);
-            return;
-        }
-
-        for (int i = u; i < n; i++) {
-            auto edge = remainingEdges[i];
-            int u = edge->source, v = edge->dest;
-            if (!uf.same(u, v)) {
-                uf.unite(u, v);
-            }
-        }
-    }
-
-    int kruskalWithAlternatives() {
+    int kruskal() {
+        priority_queue<Edge> pq;
         DSU uf(n);
-        // 记录候选边
-        vector<Edge*> alternatives;
-        // 记录最小生成树的边
-        vector<Edge*> MST;
-        int cost = 0;
-        while (!edges.empty()) {
-            auto edge = edges.top();
-            edges.pop();
-            int u = edge->source, v = edge->dest, w = edge->weight;
-            if (!uf.same(u, v)) {
-                MST.push_back(edge);
-                uf.unite(u, v);
-                cost += w;
+
+        for (auto& e : edges) {
+            pq.push(e);
+        }
+
+        minMst = 0;
+        while (!pq.empty()) {
+            auto cur = pq.top();
+            pq.pop();
+            // cout << cur.source << " " << cur.dest << " " << cur.weight << endl;
+
+            if (uf.same(cur.source, cur.dest)) {
+                remainingEdges.push_back(cur);
             } else {
-                alternatives.push_back(edge);
+                uf.unite(cur.source, cur.dest);
+                mst.push_back(cur);
+                minMst += cur.weight;
             }
         }
-        return cost;
+        return minMst;
+    }
+
+    bool dfs(int cur, int target, vector<bool>& visited, int& maxEdge, vector<vector<pair<int, int>>>& adj) {
+        if (cur == target) {
+            return true;
+        }
+        visited[cur] = true;
+        for (auto& edge : adj[cur]) {
+            int next = edge.first;
+            int weight = edge.second;
+            if (!visited[next]) {
+                if (dfs(next, target, visited, maxEdge, adj)) {
+                    maxEdge = max(maxEdge, weight);
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    int findMaxEdgeInCycle(int source, int dest, vector<vector<pair<int, int>>>& adj) {
+        // 使用 DFS 找到 source 和 dest 之间的路径，返回路径上的最大边权重
+        vector<bool> visited(MAXN, false);
+        int maxEdge = 0;
+        dfs(source, dest, visited, maxEdge, adj);
+        return maxEdge;
+    }
+
+    int findSecondMst() {
+        vector<vector<pair<int, int>>> adj(MAXN);
+        for (auto& edge : mst) {
+            adj[edge.source].push_back({edge.dest, edge.weight});
+            adj[edge.dest].push_back({edge.source, edge.weight});
+        }
+
+        // 枚举所有不在 MST 中的边
+        int secondMinMst = INF;
+        for (auto& edge : remainingEdges) {
+            int maxEdge = findMaxEdgeInCycle(edge.source, edge.dest, adj);
+            if (maxEdge > 0) {
+                int newWeight = minMst - maxEdge + edge.weight;
+                secondMinMst = min(secondMinMst, newWeight);
+            }
+        }
+        return secondMinMst;
     }
 };
 
 int main(void) {
     int n, m;
-    cin >> n >> m;
+    read(n);
+    read(m);
     Graph g(n);
     for (int i = 0; i < m; i++) {
-        int s, d, w;
-        cin >> s >> d >> w;
-        g.insertEdge(s, d, w);
+        int u, v, w;
+        read(u);
+        read(v);
+        read(w);
+        g.insertEdge(u, v, w);
+    }
+    int component = g.getComponent();
+    if (component != 1) {
+        cout << "NO MST" << endl;
+        cout << component << endl;
+        return 0;
+    }
+    int minMst = g.kruskal();
+    int secondMinMst = g.findSecondMst();
+    if (minMst == secondMinMst) {
+        cout << "YES" << endl
+             << minMst << endl;
+    } else {
+        cout << "NO" << endl
+             << minMst << " ";
+        if (secondMinMst == INF) {
+            cout << -1 << endl;
+        } else {
+            cout << secondMinMst << endl;
+        }
     }
 
-    if (!g.connected()) {
-        // 不连通
-        cout << "NO MST" << endl
-             << g.getComponent() << endl;
-    } else {
-        // 连通
-        // 判断有无多个最小生成树（不会）
-        cout << "YES" << endl
-             << g.kruskalWithAlternatives() << endl;
-    }
     return 0;
 }
